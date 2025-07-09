@@ -7,6 +7,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include "Screen.h"
+#include "Bluetooth.h"
 
 //////////////////////////////////////////////////////
 //                                                  //

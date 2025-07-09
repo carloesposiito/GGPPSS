@@ -17,7 +17,7 @@ void Display::Initialize()
     else
     {
 #if DEBUG
-        Serial.print(F("Display error!"));
+        Serial.println(F("Display error!"));
         
         // Stop loop
         while (true) { }
