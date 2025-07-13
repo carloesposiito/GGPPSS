@@ -93,7 +93,9 @@ void Display::WriteText(String nextDirection, String nextDirectionDistance, Stri
         else
         {
             _display.drawStr(3, 12, nextDirection.c_str());
-            _display.drawStr(3, 26, nextDirectionDistance.c_str());
+
+             _display.setFont(u8g2_font_7x14_tr);
+            _display.drawStr(3, 31, nextDirectionDistance.c_str());
         }
     }
 

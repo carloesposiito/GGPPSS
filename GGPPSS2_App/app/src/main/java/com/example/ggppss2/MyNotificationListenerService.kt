@@ -54,7 +54,7 @@ class MyNotificationListenerService : NotificationListenerService() {
                 val timeMatch = Regex("""(?:(\d+)\s*h)?\s*(?:(\d+)\s*min)?""").find(subtext)
                 val hours = timeMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
                 val minutes = timeMatch?.groupValues?.get(2)?.toIntOrNull() ?: 0
-                val time = "${hours}h ${minutes}m"
+                val time = "${hours}h ${minutes}'"
 
                 // Print read data
                 Log.d("GGPPSS", "\"$text\" in $distance $unit")
