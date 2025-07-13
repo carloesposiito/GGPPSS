@@ -20,12 +20,10 @@ private:
     /// @brief BLE characteristic used to receive data from connected device.
     BLECharacteristic *pRxCharacteristic;
 
-   
-
 public:
 
- /// @brief Reference to display object, used to show data on screen.
-    Display *_displayObject;
+    /// @brief Reference to display object, used to show data on screen.
+    Display *DisplayObject;
 
     /// @brief Describes if smartphone is connected through BLE connection.
     bool IsDeviceConnected;

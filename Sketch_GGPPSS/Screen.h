@@ -31,11 +31,19 @@ public:
 
 	/// @brief Write text to display.
 	/// @param text Text to be displayed.
-	void WriteText(String text, int x, int y, Direction direction = HORIZONTAL_0);
+	/// @param x X position of the text on screen.
+	/// @param y Y position of the text on screen.
+	/// @param direction Direction of the text.
+	void WriteText(String text, int x = 3, int y = 14, Direction direction = HORIZONTAL_0);
 
-    /// @brief Write text to display.
-	/// @param text Text to be displayed.
-	void WriteText(String nextDirection, String nextDirectionDistance, String arrival, String distanceLeft, String timeLeft);
+	/// @brief Write direction data to display.
+	/// @param nextDirection Next direction.
+	/// @param nextDirectionDistance Distance to next direction.
+	/// @param arrivalTime Destination arrival time.
+	/// @param distanceLeft Distance left to destination.
+	/// @param timeLeft Time left to destination.
+    /// @param direction Direction of the text.
+	void WriteText(String nextDirection, String nextDirectionDistance, String arrivalTime, String distanceLeft, String timeLeft, Direction direction = HORIZONTAL_0);
 };
 
 #endif

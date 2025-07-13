@@ -12,16 +12,17 @@
 class MyCallbacks : public BLECharacteristicCallbacks
 {
 private:
-    BLE* _ble;  // puntatore alla classe BLE
+    BLE* _ble;
 
 public:
-    // Costruttore
+    
+    /// @brief Constructor
     MyCallbacks(BLE* bleInstance) : _ble(bleInstance) {}
 
     void onWrite(BLECharacteristic *pRxCharacteristic) override
     {
         std::string rxValueStd = std::string((const char*)pRxCharacteristic->getValue().c_str());
-        String rxValue = String(rxValueStd.c_str());  // conversione corretta
+        String rxValue = String(rxValueStd.c_str());
 
         if (rxValue.length() > 0)
         {
@@ -42,16 +43,20 @@ public:
                 Serial.println(F(""));
 #endif
 
-                _ble->_displayObject->WriteText(String("\"") + nextDirection + "\"", String(nextDirectionDistance) + nextDirectionDistanceUnit, String(arrival), String(distanceLeft), String(timeLeft));
+                // Send text to display
+                _ble->DisplayObject->WriteText(nextDirection, String(nextDirectionDistance) + nextDirectionDistanceUnit, String(arrival), String(distanceLeft), String(timeLeft));
             }
-#if DEBUG
             else
             {
+#if DEBUG
                 Serial.println(F("Invalid JSON received:"));
                 Serial.println(rxValue);
                 Serial.println(F(""));
-            }
 #endif
+
+                // Send text to display
+                _ble->DisplayObject->WriteText(String(rxValue), 3, 14);
+            }
         }
     }
 };
@@ -93,7 +98,7 @@ public:
 /// @brief Constructor of the BLE class.
 BLE::BLE(Display *displayObject)
     : IsDeviceConnected(false),
-      _displayObject(displayObject),
+      DisplayObject(displayObject),
       pServer(nullptr),
       pRxCharacteristic(nullptr) {}
 
