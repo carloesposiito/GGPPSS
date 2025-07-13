@@ -64,15 +64,15 @@ class MyNotificationListenerService : NotificationListenerService() {
 
         // Costruzione JSON già fatta qui
         val jsonMessage = """
-    {
-        "text": "$text",
-        "distance": "$distance",
-        "unit": "$unit",
-        "arrival": "$arrival",
-        "left": "$left",
-        "time": "$time"
-    }
-""".trimIndent()
+        {
+            "nD": "$text",
+            "nDD": "$distance",
+            "nDDU": "$unit",
+            "a": "$arrival",
+            "dL": "$left",
+            "tL": "$time"
+        }
+    """.trimIndent()
 
         Log.d("BLE_NOTIFY", "Sending BLE JSON:")
         Log.d("BLE_NOTIFY", jsonMessage)

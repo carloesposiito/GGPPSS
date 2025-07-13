@@ -1,13 +1,14 @@
 #ifndef Bluetooth
 #define Bluetooth
 
+// Include common libs
+#include "Including.h"
+
 // Include native BLE libraries
 #include <BLEDevice.h>
 #include <BLEServer.h> 
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include "Including.h"
-
 
 class BLE
 {
@@ -19,13 +20,18 @@ private:
     /// @brief BLE characteristic used to receive data from connected device.
     BLECharacteristic *pRxCharacteristic;
 
+   
+
 public:
 
-    /// @brief Describes if variometer is connected through BLE connection.
+ /// @brief Reference to display object, used to show data on screen.
+    Display *_displayObject;
+
+    /// @brief Describes if smartphone is connected through BLE connection.
     bool IsDeviceConnected;
 
     /// @brief Constructor of the BLE class.
-    BLE();
+    BLE(Display *displayObject);
 
     /// @brief Initializes BLE connection.
     void Initialize();

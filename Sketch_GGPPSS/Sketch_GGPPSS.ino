@@ -2,7 +2,7 @@
 
 String _deviceInfo = "GGPPSS Alpha";
 Display _display(_deviceInfo);
-BLE _ble;
+BLE _ble(&_display);
 int counter = 0;
 
 void setup()
@@ -14,9 +14,7 @@ void setup()
 #endif
 
   _display.Initialize();
-  Serial.println("AA");
   _ble.Initialize();
-Serial.println("BB");
 
 #if DEBUG
   Serial.println(F("INITIALIZE ENDED"));
@@ -26,6 +24,9 @@ Serial.println("BB");
 
 void loop()
 {
-  _display.WriteText(String(++counter), 32, 32, HORIZONTAL_0);
+#if DEBUG
+  //_display.WriteText(String(++counter), 32, 32, HORIZONTAL_0);
+#endif
+
   delay(1000);
 }

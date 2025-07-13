@@ -32,6 +32,10 @@ public:
 	/// @brief Write text to display.
 	/// @param text Text to be displayed.
 	void WriteText(String text, int x, int y, Direction direction = HORIZONTAL_0);
+
+    /// @brief Write text to display.
+	/// @param text Text to be displayed.
+	void WriteText(String nextDirection, String nextDirectionDistance, String arrival, String distanceLeft, String timeLeft);
 };
 
 #endif

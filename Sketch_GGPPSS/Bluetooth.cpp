@@ -8,90 +8,92 @@
 
 #pragma region "Callbacks"
 
+/// @brief Holds BLE read/write characteristics events. 
 class MyCallbacks : public BLECharacteristicCallbacks
 {
+private:
+    BLE* _ble;  // puntatore alla classe BLE
+
+public:
+    // Costruttore
+    MyCallbacks(BLE* bleInstance) : _ble(bleInstance) {}
+
     void onWrite(BLECharacteristic *pRxCharacteristic) override
-{
-    std::string rxValueStd = std::string((const char*)pRxCharacteristic->getValue().c_str());
-    String rxValue = String(rxValueStd.c_str());  // conversione corretta
-
-    if (rxValue.length() > 0)
     {
-        DynamicJsonDocument doc(256);
-        DeserializationError desError = deserializeJson(doc, rxValue.c_str());
+        std::string rxValueStd = std::string((const char*)pRxCharacteristic->getValue().c_str());
+        String rxValue = String(rxValueStd.c_str());  // conversione corretta
 
-        if (!desError)
+        if (rxValue.length() > 0)
         {
-            const char* text = doc["text"];
-            const char* unit = doc["unit"];
-            const char* arrival = doc["arrival"];
-            const char* left = doc["left"];
-            const char* time = doc["time"];
-            int distance = doc["distance"];
+            DynamicJsonDocument doc(256);
+
+            if (!deserializeJson(doc, rxValue.c_str()))
+            {
+                const char* nextDirection = doc["nD"];
+                int nextDirectionDistance = doc["nDD"];
+                const char* nextDirectionDistanceUnit = doc["nDDU"];
+                const char* arrival = doc["a"];
+                const char* distanceLeft = doc["dL"];
+                const char* timeLeft = doc["tL"];
 
 #if DEBUG
-            Serial.print(F("Text: "));
-            Serial.println(text);
-            Serial.print(F("Distance: "));
-            Serial.println(distance);
-            Serial.print(F("Unit: "));
-            Serial.println(unit);
-            Serial.print(F("Arrival: "));
-            Serial.println(arrival);
-            Serial.print(F("Left: "));
-            Serial.println(left);
-            Serial.print(F("Time: "));
-            Serial.println(time);
-            Serial.println();
+                Serial.println(String("\"") + nextDirection + "\" in " + String(nextDirectionDistance) + nextDirectionDistanceUnit);
+                Serial.println(String("Arrival ") + arrival + " - " + distanceLeft + " left - (" + timeLeft + ")");
+                Serial.println(F(""));
 #endif
-        }
+
+                _ble->_displayObject->WriteText(String("\"") + nextDirection + "\"", String(nextDirectionDistance) + nextDirectionDistanceUnit, String(arrival), String(distanceLeft), String(timeLeft));
+            }
 #if DEBUG
-        else
-        {
-            Serial.println(F("Errore nel parsing del JSON"));
-            Serial.print(F("Dato ricevuto: "));
-            Serial.println(rxValue);  // Mostra la stringa che ha fallito
-            Serial.println();
-        }
+            else
+            {
+                Serial.println(F("Invalid JSON received:"));
+                Serial.println(rxValue);
+                Serial.println(F(""));
+            }
 #endif
+        }
     }
-}
-
-
 };
 
-class MyServerCallbacks : public BLEServerCallbacks {
+
+/// @brief Holds BLE connection callbacks. 
+class MyServerCallbacks : public BLEServerCallbacks
+{
 private:
     BLE *_ble;
 
 public:
-    MyServerCallbacks(BLE *bleInstance) : _ble(bleInstance) {
-#if DEBUG
-        Serial.println(F("MyServerCallbacks created"));
-#endif
-    }
 
-    void onConnect(BLEServer *pServer) override {
+    /// @brief Holds BLE callbacks. 
+    MyServerCallbacks(BLE *bleInstance) : _ble(bleInstance) { }
+
+    /// @brief Occurs when BLE connection happens.
+    void onConnect(BLEServer *pServer) override
+    {
+        _ble->IsDeviceConnected = true;
 #if DEBUG
         Serial.println(F("BLE device connected"));
-#endif
-        _ble->IsDeviceConnected = true;
+#endif        
     }
 
-    void onDisconnect(BLEServer *pServer) override {
+    /// @brief Occurs when BLE disconnection happens.
+    void onDisconnect(BLEServer *pServer) override
+    {
+        _ble->IsDeviceConnected = false;
+        pServer->getAdvertising()->start();
 #if DEBUG
         Serial.println(F("BLE device disconnected"));
 #endif
-        _ble->IsDeviceConnected = false;
-        pServer->getAdvertising()->start();
     }
 };
 
-
 #pragma endregion
 
-BLE::BLE()
+/// @brief Constructor of the BLE class.
+BLE::BLE(Display *displayObject)
     : IsDeviceConnected(false),
+      _displayObject(displayObject),
       pServer(nullptr),
       pRxCharacteristic(nullptr) {}
 
@@ -99,31 +101,31 @@ void BLE::Initialize()
 {
     BLEDevice::init(BLE_NAME);
 
+    // Create server
     pServer = BLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks(this));
     BLEService *pService = pServer->createService(SERVICE_UUID);
 
+    // Create rx characteristic, passa 'this' a MyCallbacks
     pRxCharacteristic = pService->createCharacteristic(
         CHARACTERISTIC_UUID_RX,
         BLECharacteristic::PROPERTY_WRITE);
-    pRxCharacteristic->setCallbacks(new MyCallbacks());
+    pRxCharacteristic->setCallbacks(new MyCallbacks(this));
 
+    // Start service
     pService->start();
 
+    // Configure advertising
     BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
     pAdvertising->addServiceUUID(SERVICE_UUID);
     pAdvertising->setScanResponse(true);
     pAdvertising->setMinPreferred(0x06);
     pAdvertising->setMinPreferred(0x12);
 
-    //BLESecurity *pSecurity = new BLESecurity();
-   // pSecurity->setAuthenticationMode(ESP_LE_AUTH_NO_BOND);
-    //pSecurity->setCapability(ESP_IO_CAP_NONE);
-    //pSecurity->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
-
+    // Start advertising
     pServer->getAdvertising()->start();
 
-    #if DEBUG
-    Serial.println(F("BLE init complete"));
+#if DEBUG
+    Serial.println(F("BLE initializing... SUCCESS"));
 #endif
 }
