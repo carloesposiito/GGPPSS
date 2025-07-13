@@ -8,13 +8,15 @@ int counter = 0;
 void setup()
 {
 #if DEBUG
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println(F("INITIALIZE STARTED"));
   Serial.println(F(""));
 #endif
 
   _display.Initialize();
+  Serial.println("AA");
   _ble.Initialize();
+Serial.println("BB");
 
 #if DEBUG
   Serial.println(F("INITIALIZE ENDED"));

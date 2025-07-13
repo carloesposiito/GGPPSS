@@ -1,20 +1,19 @@
-
 package com.example.ggppss
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import android.os.Bundle
 
 class MyNotificationListenerService : NotificationListenerService() {
 
     companion object {
-        val mapsPackageName = "com.google.android.apps.maps"
+        private const val TAG = "MAPS_NOTIFY"
+        private const val mapsPackageName = "com.google.android.apps.maps"
 
-        var previousText: String? = ""
-        var previousTitleData: String? = ""
-        var previousSubtextData: String? = ""
-        var previousPostTime: Long = 0
+        private var previousText: String? = ""
+        private var previousTitle: String? = ""
+        private var previousSubtext: String? = ""
+        private var previousPostTime: Long = 0
     }
 
     object NotificationBridge {
@@ -22,144 +21,74 @@ class MyNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (sbn.packageName == mapsPackageName) {
+        if (sbn.packageName != mapsPackageName) return
 
-            val currentNotificationData = sbn.notification.extras
+        val extras = sbn.notification.extras
+        val text = extras.getCharSequence("android.text")?.toString() ?: ""
+        val title = extras.getCharSequence("android.title")?.toString() ?: ""
+        val subtext = extras.getCharSequence("android.subText")?.toString() ?: ""
 
-            val currentText = currentNotificationData.getCharSequence("android.text")?.toString() ?: ""
-            val currentTitleData = currentNotificationData.getCharSequence("android.title")?.toString() ?: ""
-            val currentSubtextData = currentNotificationData.getCharSequence("android.subText")?.toString() ?: ""
+        Log.d("${TAG}_RAW", "Text: $text | Title: $title | SubText: $subtext")
+        Log.d("${TAG}_RAW", "PostTime: ${sbn.postTime} | Previous: $previousPostTime")
 
-            Log.d("MAPS_NOTIFY_RAW", "Text: $currentText | Title: $currentTitleData | SubText: $currentSubtextData")
-            Log.d("MAPS_NOTIFY_RAW", "PostTime: ${sbn.postTime} | Previous: $previousPostTime")
-
-            if (
-                currentText != previousText ||
-                currentTitleData != previousTitleData ||
-                currentSubtextData != previousSubtextData ||
+        val isNew = text != previousText ||
+                title != previousTitle ||
+                subtext != previousSubtext ||
                 sbn.postTime != previousPostTime
-            ) {
-                previousText = currentText
-                previousTitleData = currentTitleData
-                previousSubtextData = currentSubtextData
-                previousPostTime = sbn.postTime
 
-                //region Parsing current direction distance
-                var currentTextDistance: String? = ""
-                var currentTextDistanceUnit: String? = ""
-                val distanceRegex = Regex("""([\d.,]+)\s*([a-zA-Z]+)""")
-                distanceRegex.find(currentTitleData)?.let {
-                    currentTextDistance = it.groupValues[1]
-                    currentTextDistanceUnit = it.groupValues[2]
-                }
-                //endregion
+        if (!isNew) return
 
-                //region Parsing arrival time
-                var arrivalTime: String? = ""
-                val arrivalTimeRegex = Regex("""Arrivo\s+(\d{1,2}:\d{2})""")
-                arrivalTimeRegex.find(currentSubtextData)?.let {
-                    arrivalTime = it.groupValues[1]
-                }
-                //endregion
+        previousText = text
+        previousTitle = title
+        previousSubtext = subtext
+        previousPostTime = sbn.postTime
 
-                //region Parsing total distance left
-                var totalDistanceLeft: String? = ""
-                val distanceLeftRegex = Regex("""(\d+)\s*(km|m)""")
-                distanceLeftRegex.find(currentSubtextData)?.let {
-                    val distanceLeft = it.groupValues[1]
-                    val distanceLeftUnit = it.groupValues[2]
-                    totalDistanceLeft = "$distanceLeft$distanceLeftUnit"
-                }
-                //endregion
+        // Parse distanza (es: 0 m)
+        val distanceMatch = Regex("""([\d.,]+)\s*([a-zA-Z]+)""").find(title)
+        val distance = distanceMatch?.groupValues?.get(1) ?: ""
+        val unit = distanceMatch?.groupValues?.get(2) ?: ""
 
-                //region Parsing time left
-                var timeLeft: String? = ""
-                val timeLeftRegex = Regex("""(?:(\d+)\s*h)?\s*(?:(\d+)\s*min)?""")
-                timeLeftRegex.find(currentSubtextData)?.let {
-                    val hours = it.groupValues[1].takeIf { it.isNotBlank() }?.toInt() ?: 0
-                    val minutes = it.groupValues[2].takeIf { it.isNotBlank() }?.toInt() ?: 0
-                    timeLeft = "${hours}h ${minutes}m"
-                }
-                //endregion
+        // Parse orario di arrivo (es: Arrivo 01:31)
+        val arrivalMatch = Regex("""Arrivo\s+(\d{1,2}:\d{2})""").find(subtext)
+        val arrival = arrivalMatch?.groupValues?.get(1) ?: ""
 
-                // Log final data
-                Log.d("MAPS_NOTIFY", "\"$currentText\" in $currentTextDistance $currentTextDistanceUnit")
-                Log.d("MAPS_NOTIFY", "Arrival $arrivalTime - $totalDistanceLeft left ($timeLeft)")
-                Log.d("MAPS_NOTIFY", "************************************************")
+        // Parse distanza rimanente (es: 13 km)
+        val leftMatch = Regex("""(\d+)\s*(km|m)""").find(subtext)
+        val left = leftMatch?.let { "${it.groupValues[1]}${it.groupValues[2]}" } ?: ""
+
+        // Parse tempo rimanente (es: 21 min -> 0h 21m)
+        val timeMatch = Regex("""(?:(\d+)\s*h)?\s*(?:(\d+)\s*min)?""").find(subtext)
+        val hours = timeMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val minutes = timeMatch?.groupValues?.get(2)?.toIntOrNull() ?: 0
+        val time = "${hours}h ${minutes}m"
+
+        Log.d(TAG, "\"$text\" in $distance $unit")
+        Log.d(TAG, "Arrival $arrival - $left left ($time)")
+
+        val jsonMessage = """
+            {
+                "text": "$text",
+                "distance": "$distance",
+                "unit": "$unit",
+                "arrival": "$arrival",
+                "left": "$left",
+                "time": "$time"
             }
+        """.trimIndent()
+
+        Log.d("BLE_NOTIFY", "Sending BLE JSON:")
+        Log.d("BLE_NOTIFY", jsonMessage)
+
+        try {
+            BleServer.instance.sendNotification(jsonMessage)
+        } catch (e: Exception) {
+            Log.e("BLE_NOTIFY", "Failed to send BLE notification", e)
         }
+
+        Log.d(TAG, "************************************************")
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         Log.d("NotificationReader", "Notification removed: ${sbn.packageName}")
     }
 }
-
-
-/*
-package com.example.ggppss
-
-import android.service.notification.NotificationListenerService
-import android.service.notification.StatusBarNotification
-import android.util.Log
-import android.os.Bundle
-
-class MyNotificationListenerService : NotificationListenerService() {
-
-    companion object {
-        const val mapsPackageName = "com.google.android.apps.maps"
-
-        var previousTitleData: String? = ""
-        var previousText: String? = ""
-        var previousSubtextData: String? = ""
-    }
-
-    object NotificationBridge {
-        var onNotificationReceived: ((String) -> Unit)? = null
-    }
-
-    override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (sbn.packageName == mapsPackageName) {
-            val data = sbn.notification.extras
-
-            val currentText = data.getCharSequence("android.text")?.toString() ?: ""
-            val currentTitleData = data.getCharSequence("android.title")?.toString() ?: ""
-            val currentSubtextData = data.getCharSequence("android.subText")?.toString() ?: ""
-
-            if (currentText != previousText || currentTitleData != previousTitleData || currentSubtextData != previousSubtextData) {
-                previousText = currentText
-                previousTitleData = currentTitleData
-                previousSubtextData = currentSubtextData
-
-                val distanceRegex = Regex("""([\d.,]+)\s*([a-zA-Z]+)""")
-                val match = distanceRegex.find(currentTitleData)
-                val currentTextDistance = match?.groupValues?.get(1) ?: ""
-                val currentTextDistanceUnit = match?.groupValues?.get(2) ?: ""
-
-                val arrivalTimeRegex = Regex("""Arrivo\s+(\d{1,2}:\d{2})""")
-                val arrivalTime = arrivalTimeRegex.find(currentSubtextData)?.groupValues?.get(1)
-
-                val distanceLeftRegex = Regex("""(\d+)\s*(km|m)""")
-                val totalDistanceLeft = distanceLeftRegex.find(currentSubtextData)?.let {
-                    "${it.groupValues[1]} ${it.groupValues[2]}"
-                }
-
-                val timeLeftRegex = Regex("""(?:(\d+)\s*h)?\s*(?:(\d+)\s*min)?""")
-                val timeLeft = timeLeftRegex.find(currentSubtextData)?.let {
-                    val hours = it.groupValues[1].takeIf { it.isNotBlank() }?.toInt() ?: 0
-                    val minutes = it.groupValues[2].takeIf { it.isNotBlank() }?.toInt() ?: 0
-                    "${hours}h ${minutes}m"
-                }
-
-                Log.d("MAPS_NOTIFY", "\"$currentText\" in $currentTextDistance $currentTextDistanceUnit")
-                Log.d("MAPS_NOTIFY", "Arrival $arrivalTime - $totalDistanceLeft left ($timeLeft)")
-                Log.d("MAPS_NOTIFY", "************************************************")
-            }
-        }
-    }
-
-    override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        Log.d("NotificationReader", "Notification removed: ${sbn.packageName}")
-    }
-}
-*/
