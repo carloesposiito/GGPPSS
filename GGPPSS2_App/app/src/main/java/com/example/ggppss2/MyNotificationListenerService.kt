@@ -47,10 +47,10 @@ class MyNotificationListenerService : NotificationListenerService() {
                 val arrival = arrivalMatch?.groupValues?.get(1) ?: ""
 
                 // Parse total left distance
-                val leftMatch = Regex("""(\d+)\s*(km|m)""").find(subtext)
-                val left = leftMatch?.let { "${it.groupValues[1]}${it.groupValues[2]}" } ?: ""
+                val leftDistanceMatch = Regex("""(?<!\bmin\s)(?<!\bh\s)(\d+(?:[.,]\d+)?)\s*(km|m)\b""").find(subtext)
+                val left = leftDistanceMatch?.let { "${it.groupValues[1]}${it.groupValues[2]}" } ?: ""
 
-                // Parse left timr
+                // Parse left timer
                 val timeMatch = Regex("""(?:(\d+)\s*h)?\s*(?:(\d+)\s*min)?""").find(subtext)
                 val hours = timeMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
                 val minutes = timeMatch?.groupValues?.get(2)?.toIntOrNull() ?: 0

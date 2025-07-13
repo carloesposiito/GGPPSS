@@ -20,7 +20,6 @@ void Display::Initialize()
 #if DEBUG
         Serial.println(F("Display initializing... FAILED!"));
 #endif    
-        // Stop loop
         while (true) { }
     }
 };
@@ -37,17 +36,10 @@ void Display::WriteText(String text, int x, int y, Direction direction)
     _display.setFont(u8g2_font_5x7_tr);
 
     _display.drawStr(x, y, text.c_str());
-    
     _display.sendBuffer();
 }
 
 /// @brief Write direction data to display.
-/// @param nextDirection Next direction.
-/// @param nextDirectionDistance Distance to next direction.
-/// @param arrivalTime Destination arrival time.
-/// @param distanceLeft Distance left to destination.
-/// @param timeLeft Time left to destination.
-/// @param direction Direction of the text.
 void Display::WriteText(String nextDirection, String nextDirectionDistance, String arrivalTime, String distanceLeft, String timeLeft, Direction direction)
 {
     _display.clearBuffer();
@@ -55,34 +47,65 @@ void Display::WriteText(String nextDirection, String nextDirectionDistance, Stri
 
     #pragma region "Next direction"
 
-    // Set right text size
-    // Use u8g2_font_ncenB10_tr for a bigger text
-    _display.setFont(u8g2_font_ncenB08_tr);
+    _display.setFont(u8g2_font_6x10_tr);
 
-    _display.drawStr(3, 14, nextDirection.c_str());
-    _display.drawStr(3, 27, nextDirectionDistance.c_str());
-    
+    if (nextDirection.length() > 0)
+    {
+        uint16_t textWidth = _display.getStrWidth(nextDirection.c_str());
+
+        if (textWidth >= 128)
+        {
+            int bestSplit = -1;
+            int center = nextDirection.length() / 2;
+            int closestDistance = nextDirection.length();
+
+            for (int i = 1; i < nextDirection.length() - 1; ++i)
+            {
+                if (nextDirection[i] == ' ')
+                {
+                    int distance = abs(i - center);
+                    if (distance < closestDistance)
+                    {
+                        closestDistance = distance;
+                        bestSplit = i;
+                    }
+                }
+            }
+
+            if (bestSplit != -1)
+            {
+                String line1 = nextDirection.substring(0, bestSplit);
+                String line2 = nextDirection.substring(bestSplit + 1);
+
+                _display.drawStr(3, 12, line1.c_str());
+                _display.drawStr(3, 26, line2.c_str());
+
+                _display.setFont(u8g2_font_7x14_tr);
+                _display.drawStr(3, 45, nextDirectionDistance.c_str());
+            }
+            else
+            {
+                _display.drawStr(3, 12, nextDirection.c_str());
+                _display.setFont(u8g2_font_7x14_tr);
+                _display.drawStr(3, 45, nextDirectionDistance.c_str());
+            }
+        }
+        else
+        {
+            _display.drawStr(3, 12, nextDirection.c_str());
+            _display.drawStr(3, 26, nextDirectionDistance.c_str());
+        }
+    }
+
     #pragma endregion
 
-    #pragma region "Arrival time"
+    #pragma region "Arrival time, total distance and time left"
 
-    // Set smallest text size
     _display.setFont(u8g2_font_5x7_tr);
-    _display.drawStr(3, 48, arrivalTime.c_str());
+    String otherDetails = arrivalTime + ", " + distanceLeft + ", " + timeLeft;
+    _display.drawStr(3, 61, otherDetails.c_str());
 
     #pragma endregion
 
-    #pragma region "Total distance and time left"
-
-    // Set smallest text size
-    _display.setFont(u8g2_font_5x7_tr);
-    
-    // Build string to be displayed then display it
-    String otherDetails = distanceLeft + " (" + timeLeft + ")";    
-    _display.drawStr(3, 58, otherDetails.c_str());
-
-    #pragma endregion
-
-    // Send buffer to display
     _display.sendBuffer();
 }
