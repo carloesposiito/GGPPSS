@@ -1,8 +1,9 @@
-package com.example.ggppss
+package com.example.ggppss2
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import com.example.ggppss2.ble.BLEManager
 
 class MyNotificationListenerService : NotificationListenerService() {
 
@@ -14,10 +15,6 @@ class MyNotificationListenerService : NotificationListenerService() {
         private var previousTitle: String? = ""
         private var previousSubtext: String? = ""
         private var previousPostTime: Long = 0
-    }
-
-    object NotificationBridge {
-        var onNotificationReceived: ((String) -> Unit)? = null
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -65,30 +62,36 @@ class MyNotificationListenerService : NotificationListenerService() {
         Log.d(TAG, "\"$text\" in $distance $unit")
         Log.d(TAG, "Arrival $arrival - $left left ($time)")
 
+        // Costruzione JSON già fatta qui
         val jsonMessage = """
-            {
-                "text": "$text",
-                "distance": "$distance",
-                "unit": "$unit",
-                "arrival": "$arrival",
-                "left": "$left",
-                "time": "$time"
-            }
-        """.trimIndent()
+    {
+        "text": "$text",
+        "distance": "$distance",
+        "unit": "$unit",
+        "arrival": "$arrival",
+        "left": "$left",
+        "time": "$time"
+    }
+""".trimIndent()
 
         Log.d("BLE_NOTIFY", "Sending BLE JSON:")
         Log.d("BLE_NOTIFY", jsonMessage)
 
         try {
-            BleServer.instance.sendNotification(jsonMessage)
+            val bleManager = BLEManager.getInstance(this)
+
+            // Taglio la stringa JSON a max 180 byte, se serve
+            val jsonToSend = if (jsonMessage.length > 180) jsonMessage.take(180) else jsonMessage
+
+            val success = bleManager.writeToCharacteristic(jsonToSend.toByteArray())
+
+            Log.d("MyNotificationListener", "Inviato via BLE: $jsonToSend - Success: $success")
         } catch (e: Exception) {
             Log.e("BLE_NOTIFY", "Failed to send BLE notification", e)
         }
-
-        Log.d(TAG, "************************************************")
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        Log.d("NotificationReader", "Notification removed: ${sbn.packageName}")
+        // Facoltativo
     }
 }

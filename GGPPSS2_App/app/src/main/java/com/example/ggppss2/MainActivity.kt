@@ -1,10 +1,16 @@
 package com.example.ggppss2
 
+import android.Manifest
+import android.content.Context
 import android.content.Intent
+import android.location.LocationManager
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -13,11 +19,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.example.ggppss2.ble.BLEManager
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var bleManager: BLEManager
+
+    // Launcher per richiesta permesso location (Android 11 e precedenti)
+    private val requestLocationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                checkLocationEnabledAndStartScan()
+            } else {
+                Toast.makeText(
+                    this,
+                    "Permesso Location richiesto per usare Bluetooth BLE su Android 11 e versioni precedenti",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,7 +48,6 @@ class MainActivity : ComponentActivity() {
             val isConnected by bleManager.isConnected
             var isNotificationAccessGranted by remember { mutableStateOf(false) }
 
-            // Controllo accesso notifiche ogni volta che il composable viene ricostruito
             LaunchedEffect(Unit) {
                 isNotificationAccessGranted = NotificationManagerCompat
                     .getEnabledListenerPackages(applicationContext)
@@ -48,26 +68,66 @@ class MainActivity : ComponentActivity() {
                 }
             )
 
-            // Avvio scansione una sola volta all'avvio
+            // Avvio scansione dopo permessi e location
             LaunchedEffect(Unit) {
-                bleManager.startScan("GGPPSS_BLE")
+                checkAndRequestPermissions()
             }
         }
     }
 
+    private fun checkAndRequestPermissions() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) { // Android 11 e precedenti
+            val hasLocationPermission = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+            if (hasLocationPermission) {
+                checkLocationEnabledAndStartScan()
+            } else {
+                // Richiedi permesso location
+                requestLocationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        } else {
+            // Android 12+ (S) e superiori - gestisci permessi diversi se serve
+            startBleScanDirect()
+        }
+    }
+
+    private fun checkLocationEnabledAndStartScan() {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val isLocationEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+
+        if (isLocationEnabled) {
+            startBleScanDirect()
+        } else {
+            Toast.makeText(
+                this,
+                "Attiva la posizione per usare il Bluetooth BLE su Android 11 e versioni precedenti",
+                Toast.LENGTH_LONG
+            ).show()
+            // Puoi anche aprire direttamente le impostazioni Location:
+            val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+            startActivity(intent)
+        }
+    }
+
+    private fun startBleScanDirect() {
+        bleManager.startScan("GGPPSS_BLE")
+    }
+
     override fun onResume() {
         super.onResume()
-        // Aggiorna lo stato accesso notifiche in onResume (utile se l'utente torna dalla schermata impostazioni)
+        // Rieffettua controllo accesso notifiche
         val accessGranted = NotificationManagerCompat
             .getEnabledListenerPackages(this)
             .contains(packageName)
-        // Per aggiornare lo stato in Compose in modo sicuro, puoi usare un side effect
-        // oppure gestire questo stato dentro Compose come fatto sopra (LaunchedEffect)
+        // Se vuoi aggiornare UI, gestisci dentro Compose o tramite MutableState
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Ferma scansione e disconnetti per evitare leak e consumi inutili
         bleManager.stopScan()
         bleManager.disconnect()
     }
