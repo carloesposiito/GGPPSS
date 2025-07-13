@@ -6,9 +6,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import java.util.*
 
 class BLEManager(private val context: Context) {
@@ -17,22 +15,33 @@ class BLEManager(private val context: Context) {
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     private val bluetoothLeScanner: BluetoothLeScanner? = bluetoothAdapter?.bluetoothLeScanner
 
-    // Stato interno mutabile, non visibile all'esterno
     private val _isConnected: MutableState<Boolean> = mutableStateOf(false)
-    // Stato pubblico solo lettura, da usare in Compose
     val isConnected: State<Boolean> get() = _isConnected
+
+    private val _isReadyToWrite: MutableState<Boolean> = mutableStateOf(false)
+    val isReadyToWrite: State<Boolean> get() = _isReadyToWrite
 
     private var scanning = false
     private val handler = Handler(Looper.getMainLooper())
 
     private val SCAN_PERIOD: Long = 10000 // 10 sec scan
-
     private var targetDeviceName: String? = null
 
     private val SERVICE_UUID = UUID.fromString("6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
     private val CHARACTERISTIC_UUID_RX = UUID.fromString("6E400002-B5A3-F393-E0A9-E50E24DCCA9E")
 
     private var rxCharacteristic: BluetoothGattCharacteristic? = null
+
+    companion object {
+        @Volatile
+        private var INSTANCE: BLEManager? = null
+
+        fun getInstance(context: Context): BLEManager {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: BLEManager(context.applicationContext).also { INSTANCE = it }
+            }
+        }
+    }
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
@@ -99,7 +108,9 @@ class BLEManager(private val context: Context) {
             close()
         }
         bluetoothGatt = null
+        rxCharacteristic = null
         _isConnected.value = false
+        _isReadyToWrite.value = false
         Log.d("BLEManager", "Disconnected from device")
     }
 
@@ -116,6 +127,7 @@ class BLEManager(private val context: Context) {
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     Log.d("BLEManager", "Disconnected from GATT server.")
                     _isConnected.value = false
+                    _isReadyToWrite.value = false
                     bluetoothGatt?.close()
                     bluetoothGatt = null
                 }
@@ -137,6 +149,7 @@ class BLEManager(private val context: Context) {
                     return
                 }
                 Log.d("BLEManager", "RX characteristic pronta per scrittura")
+                _isReadyToWrite.value = true
             } else {
                 Log.e("BLEManager", "onServicesDiscovered fallito con status: $status")
             }
