@@ -40,7 +40,7 @@ void Display::WriteText(String text, int x, int y, Direction direction)
 }
 
 /// @brief Write direction data to display.
-void Display::WriteText(String nextDirection, String nextDirectionDistance, String arrivalTime, String distanceLeft, String timeLeft, Direction direction)
+void Display::WriteText(String nextDirection, String nextDirectionDistance, String otherData, Direction direction)
 {
     _display.clearBuffer();
     _display.setFontDirection(int(direction));
@@ -104,8 +104,7 @@ void Display::WriteText(String nextDirection, String nextDirectionDistance, Stri
     #pragma region "Arrival time, total distance and time left"
 
     _display.setFont(u8g2_font_5x7_tr);
-    String otherDetails = arrivalTime + ", " + distanceLeft + ", " + timeLeft;
-    _display.drawStr(3, 61, otherDetails.c_str());
+    _display.drawStr(3, 61, otherData.c_str());
 
     #pragma endregion
 

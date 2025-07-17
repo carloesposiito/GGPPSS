@@ -39,11 +39,8 @@ public:
 	/// @brief Write direction data to display.
 	/// @param nextDirection Next direction.
 	/// @param nextDirectionDistance Distance to next direction.
-	/// @param arrivalTime Destination arrival time.
-	/// @param distanceLeft Distance left to destination.
-	/// @param timeLeft Time left to destination.
-    /// @param direction Direction of the text.
-	void WriteText(String nextDirection, String nextDirectionDistance, String arrivalTime, String distanceLeft, String timeLeft, Direction direction = HORIZONTAL_0);
+	/// @param otherData Other notification data.
+	void WriteText(String nextDirection, String nextDirectionDistance, String otherData, Direction direction = HORIZONTAL_0);
 };
 
 #endif

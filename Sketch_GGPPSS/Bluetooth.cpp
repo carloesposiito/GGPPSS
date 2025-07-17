@@ -31,20 +31,17 @@ public:
             if (!deserializeJson(doc, rxValue.c_str()))
             {
                 const char* nextDirection = doc["nD"];
-                int nextDirectionDistance = doc["nDD"];
-                const char* nextDirectionDistanceUnit = doc["nDDU"];
-                const char* arrival = doc["a"];
-                const char* distanceLeft = doc["dL"];
-                const char* timeLeft = doc["tL"];
+                const char* nextDirectionDistance = doc["nDD"];
+                const char* otherData = doc["oD"];
 
 #if DEBUG
-                Serial.println(String("\"") + nextDirection + "\" in " + String(nextDirectionDistance) + nextDirectionDistanceUnit);
-                Serial.println(String("Arrival ") + arrival + " - " + distanceLeft + " left - (" + timeLeft + ")");
+                Serial.println(String("\"") + nextDirection + "\" in " + String(nextDirectionDistance));
+                Serial.println(otherData);
                 Serial.println(F(""));
 #endif
 
                 // Send text to display
-                _ble->DisplayObject->WriteText(nextDirection, String(nextDirectionDistance) + nextDirectionDistanceUnit, String(arrival), String(distanceLeft), String(timeLeft));
+                _ble->DisplayObject->WriteText(nextDirection, nextDirectionDistance, otherData);
             }
             else
             {

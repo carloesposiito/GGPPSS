@@ -8,9 +8,8 @@ import com.example.ggppss2.ble.BLEManager
 class MyNotificationListenerService : NotificationListenerService() {
 
     companion object {
-        private const val TAG = "MAPS_NOTIFY"
-        private const val mapsPackageName = "com.google.android.apps.maps"
-
+        private const val MAPS_PACKAGE_NAME = "com.google.android.apps.maps"
+        private const val APP_TAG = "GGPPSS"
         private var previousText: String? = ""
         private var previousTitle: String? = ""
         private var previousSubtext: String? = ""
@@ -18,18 +17,29 @@ class MyNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (sbn.packageName == mapsPackageName)
+        if (sbn.packageName == MAPS_PACKAGE_NAME)
         {
             val extras = sbn.notification.extras
-            val text = extras.getCharSequence("android.text")?.toString() ?: ""
+
+            // Title holds distance from next direction
             val title = extras.getCharSequence("android.title")?.toString() ?: ""
+
+            // Text holds next direction
+            val text = extras.getCharSequence("android.text")?.toString() ?: ""
+
+            // Subtext holds:
+            // 1 - Time remaining to destination
+            // 2 - Distance remaining to destination
+            // 3 - Arrival time
             val subtext = extras.getCharSequence("android.subText")?.toString() ?: ""
 
+            // Check if current notification data is different from previous one
             val isNew = text != previousText ||
                     title != previousTitle ||
                     subtext != previousSubtext ||
                     sbn.postTime != previousPostTime
 
+            // If so...
             if (isNew)
             {
                 previousText = text
@@ -37,51 +47,68 @@ class MyNotificationListenerService : NotificationListenerService() {
                 previousSubtext = subtext
                 previousPostTime = sbn.postTime
 
-                // Parse distance to next direction
-                val distanceMatch = Regex("""([\d.,]+)\s*([a-zA-Z]+)""").find(title)
-                val distance = distanceMatch?.groupValues?.get(1) ?: ""
-                val unit = distanceMatch?.groupValues?.get(2) ?: ""
+                //region Extract distance to next direction from title
 
-                // Parse arrival time
-                val arrivalMatch = Regex("""Arrivo\s+(\d{1,2}:\d{2})""").find(subtext)
-                val arrival = arrivalMatch?.groupValues?.get(1) ?: ""
+                val nextDirectionDistance = title.replace("\\s+".toRegex(), "")
 
-                // Parse total left distance
-                val leftDistanceMatch = Regex("""(?<!\bmin\s)(?<!\bh\s)(\d+(?:[.,]\d+)?)\s*(km|m)\b""").find(subtext)
-                val left = leftDistanceMatch?.let { "${it.groupValues[1]}${it.groupValues[2]}" } ?: ""
+                //endregion
 
-                // Parse left timer
-                val timeMatch = Regex("""(?:(\d+)\s*h)?\s*(?:(\d+)\s*min)?""").find(subtext)
-                val hours = timeMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
-                val minutes = timeMatch?.groupValues?.get(2)?.toIntOrNull() ?: 0
-                val time = "${hours}h ${minutes}'"
+                //region Extract next direction from text
+
+                val nextDirection = text
+
+                //endregion
+
+                //region Extract remaining data from subtext
+
+                // Split spring according to separator
+                val separator = "·"
+                val parts = subtext.split(separator).map { it.trim() }
+
+                // 1 - Extract left time
+                val timeLeft = parts.elementAt(0)
+                    .replace("\\s*min".toRegex(), "'")
+                    .replace("\\s*hr".toRegex(), "h")
+                    .replace("\\s*h".toRegex(), "h")
+
+                // 2 - Extract left distance
+                val distanceLeft = parts.elementAt(1).replace(" ", "")
+
+                // 3 - Extract arrival time from last string part
+                val timeRegex = Regex("""\d{1,2}:\d{2}""")
+                val arrivalTime = timeRegex.find(parts.last())?.value ?: ""
+
+                // Build result string
+                val otherData = "$arrivalTime, $distanceLeft ($timeLeft)"
+
+                //endregion
 
                 // Print read data
-                Log.d("GGPPSS", "\"$text\" in $distance $unit")
-                Log.d("GGPPSS", "Arrival $arrival - $left left ($time)")
+                Log.d(APP_TAG, "\"$nextDirection\" in $nextDirectionDistance")
+                Log.d(APP_TAG, otherData)
 
                 // Send data via BLE
                 try {
+
                     val jsonMessage = """
                     {
-                        "nD": "$text",
-                        "nDD": "$distance",
-                        "nDDU": "$unit",
-                        "a": "$arrival",
-                        "dL": "$left",
-                        "tL": "$time"
+                        "nD": "$nextDirection",
+                        "nDD": "$nextDirectionDistance",
+                        "oD": "$otherData"
                     }
                     """.trimIndent()
 
                     val bleManager = BLEManager.getInstance(this)
                     val jsonToSend = if (jsonMessage.length > 180) jsonMessage.take(180) else jsonMessage
-                    val success = bleManager.writeToCharacteristic(jsonToSend.toByteArray())
 
-                    Log.d("GGPPSS", "JSON send successfully")
+                    // Send data via BLE
+                    bleManager.writeToCharacteristic(jsonToSend.toByteArray())
+
+                    Log.d(APP_TAG, "Sending JSON... OK!")
                 }
                 catch (e: Exception)
                 {
-                    Log.e("GGPPSS", "Failed to send BLE notification", e)
+                    Log.e(APP_TAG, "Sending JSON... ERROR!", e)
                 }
             }
         }
