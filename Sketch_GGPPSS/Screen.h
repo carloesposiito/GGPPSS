@@ -11,11 +11,21 @@ enum Direction
     LEFT_270 = 3
 };
 
+enum Screens
+{
+    EMPTY_SCREEN,
+    FIRST_SCREEN,
+    SECOND_SCREEN
+};
+
 class Display
 {
 private:
 
     String _deviceInfo;
+    unsigned long _previousMillis;
+    Screens _displayedScreen;
+    Screens _screenToBeDisplayed;
 
     /// @brief Display object.
     U8G2_SH1106_128X64_NONAME_F_HW_I2C _display;
