@@ -28,32 +28,35 @@ public:
         {
             DynamicJsonDocument doc(256);
 
+            // Create notification data structure with default values
+            NAVIGATION_DATA navigationData;
+
             if (!deserializeJson(doc, rxValue.c_str()))
             {
-                const char* nextDirection = doc["nD"];
-                const char* nextDirectionDistance = doc["nDD"];
-                const char* otherData = doc["oD"];
-
+                // If data a value is not found it will be replaced by an empty string    
+                navigationData.nextDirection = String(doc["nD"] | "");
+                navigationData.nextDirectionDistance = String(doc["nDD"] | "");
+                navigationData.arrivalTime = String(doc["aT"] | "");
+                navigationData.leftData = String(doc["l"] | "");
 #if DEBUG
-                Serial.println(String("\"") + nextDirection + "\" in " + String(nextDirectionDistance));
-                Serial.println(otherData);
+                Serial.println(F("Received JSON:"));
+                Serial.println("\"" + navigationData.nextDirection + "\" in " + navigationData.nextDirectionDistance);
+                Serial.println(navigationData.arrivalTime + " (" + navigationData.leftData + ")");
                 Serial.println(F(""));
-#endif
-
-                // Send text to display
-                _ble->DisplayObject->WriteText(nextDirection, nextDirectionDistance, otherData);
+#endif          
             }
             else
             {
+                navigationData.isValid = false;
 #if DEBUG
-                Serial.println(F("Invalid JSON received:"));
+                Serial.println(F("Received not valid JSON:"));
                 Serial.println(rxValue);
                 Serial.println(F(""));
-#endif
-
-                // Send text to display
-                _ble->DisplayObject->WriteText(String(rxValue), 3, 14);
-            }
+#endif   
+            }   
+            
+            // Refresh notification data in display object properties
+            _ble->DisplayObject->UpdateNavigationData(navigationData);
         }
     }
 };

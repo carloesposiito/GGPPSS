@@ -1,8 +1,7 @@
-#ifndef Bluetooth
-#define Bluetooth
+#pragma once
 
-// Include common libs
 #include "Including.h"
+#include "Screen.h"
 
 // Include native BLE libraries
 #include <BLEDevice.h>
@@ -34,5 +33,3 @@ public:
     /// @brief Initializes BLE connection.
     void Initialize();
 };
-
-#endif 

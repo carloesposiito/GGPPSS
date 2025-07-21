@@ -1,7 +1,8 @@
 #include "Including.h"
+#include "Screen.h"
+#include "Bluetooth.h"
 
-String _deviceInfo = "GGPPSS Alpha";
-Display _display(_deviceInfo);
+Display _display;
 BLE _ble(&_display);
 
 void setup()
@@ -11,8 +12,13 @@ void setup()
   Serial.println(F("--- SETUP STARTED ---"));
 #endif
 
-  _display.Initialize();
   _ble.Initialize();
+  _display.Initialize();
+
+  // Keep boot image displayed for 3 seconds
+  delay(3000);
+
+  _display.DisplayWaitingScreen();
 
 #if DEBUG
   Serial.println(F("--- SETUP ENDED ---"));
@@ -22,8 +28,14 @@ void setup()
 
 void loop()
 {
-  if (!_ble.IsDeviceConnected)
+  if (_ble.IsDeviceConnected)
   {
-    _display.WriteText("Waiting for connection...");
-  } 
+    _display.DisplayNavigationData();
+  }
+#if DEBUG
+  else
+  {
+    Serial.println(F("Waiting for connection..."));
+  }  
+#endif
 }

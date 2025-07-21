@@ -79,7 +79,8 @@ class MyNotificationListenerService : NotificationListenerService() {
                 val arrivalTime = timeRegex.find(parts.last())?.value ?: ""
 
                 // Build result string
-                val otherData = "$arrivalTime, $distanceLeft ($timeLeft)"
+                val left = "$distanceLeft ($timeLeft)"
+                val otherData = "$arrivalTime, $left"
 
                 //endregion
 
@@ -94,7 +95,8 @@ class MyNotificationListenerService : NotificationListenerService() {
                     {
                         "nD": "$nextDirection",
                         "nDD": "$nextDirectionDistance",
-                        "oD": "$otherData"
+                        "aT": "$arrivalTime",
+                        "l": "$left"
                     }
                     """.trimIndent()
 
