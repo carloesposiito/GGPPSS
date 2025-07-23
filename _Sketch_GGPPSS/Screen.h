@@ -42,9 +42,6 @@ private:
     /// @brief Holds current navigation data.
     NAVIGATION_DATA _currentNavigationData;
 
-    /// @brief Describes if background image is just drawn.
-    bool _justDrawn;
-
     /// @brief Displayes a screen.
     /// @param screenToDisplay Screen to be displayed.
     /// @param imageToDisplay Background image to be displayed.
@@ -61,9 +58,6 @@ private:
     void WriteSecondScreen();
 
 public:
-
-    /// @brief Used as event to change screen after BLE connection.
-    bool ChangeScreen;
 
     /// @brief Constructor of the class.
     Display();

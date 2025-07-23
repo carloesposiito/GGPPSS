@@ -18,6 +18,8 @@ void setup()
   // Keep boot image displayed for 3 seconds
   delay(3000);
 
+  _display.DisplayWaitingScreen();
+
 #if DEBUG
   Serial.println(F("--- SETUP ENDED ---"));
   Serial.println(F(""));
@@ -30,11 +32,10 @@ void loop()
   {
     _display.DisplayNavigationData();
   }
+#if DEBUG
   else
   {
-    _display.DisplayWaitingScreen();
-#if DEBUG
     Serial.println(F("Waiting for connection..."));
+  }  
 #endif
-  }
 }

@@ -34,10 +34,10 @@ public:
             if (!deserializeJson(doc, rxValue.c_str()))
             {
                 // If data a value is not found it will be replaced by an empty string    
-                navigationData.nextDirection = String(doc["nD"] | "-");
-                navigationData.nextDirectionDistance = String(doc["nDD"] | "-");
-                navigationData.arrivalTime = String(doc["aT"] | "-");
-                navigationData.leftData = String(doc["l"] | "-");
+                navigationData.nextDirection = String(doc["nD"] | "");
+                navigationData.nextDirectionDistance = String(doc["nDD"] | "");
+                navigationData.arrivalTime = String(doc["aT"] | "");
+                navigationData.leftData = String(doc["l"] | "");
 #if DEBUG
                 Serial.println(F("Received JSON:"));
                 Serial.println("\"" + navigationData.nextDirection + "\" in " + navigationData.nextDirectionDistance);
@@ -47,12 +47,13 @@ public:
             }
             else
             {
+                navigationData.isValid = false;
 #if DEBUG
                 Serial.println(F("Received not valid JSON:"));
                 Serial.println(rxValue);
                 Serial.println(F(""));
 #endif   
-            } 
+            }   
             
             // Refresh notification data in display object properties
             _ble->DisplayObject->UpdateNavigationData(navigationData);
@@ -76,12 +77,6 @@ public:
     void onConnect(BLEServer *pServer) override
     {
         _ble->IsDeviceConnected = true;
-        
-        // Trigger screen update
-        if (_ble->DisplayObject != nullptr)
-        {
-            _ble->DisplayObject->ChangeScreen = true;
-        }
 #if DEBUG
         Serial.println(F("BLE device connected"));
 #endif        
