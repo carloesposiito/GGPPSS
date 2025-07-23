@@ -37,13 +37,14 @@ public:
                 navigationData.nextDirection = String(doc["nD"] | "-");
                 navigationData.nextDirectionDistance = String(doc["nDD"] | "-");
                 navigationData.arrivalTime = String(doc["aT"] | "-");
-                navigationData.leftData = String(doc["l"] | "-");
+                navigationData.distanceLeft = String(doc["dL"] | "-");
+                navigationData.timeLeft = String(doc["tL"] | "-");
 #if DEBUG
                 Serial.println(F("Received JSON:"));
                 Serial.println("\"" + navigationData.nextDirection + "\" in " + navigationData.nextDirectionDistance);
-                Serial.println(navigationData.arrivalTime + " (" + navigationData.leftData + ")");
+                Serial.println(navigationData.arrivalTime + " (" + navigationData.distanceLeft + ", " + navigationData.timeLeft + ")");
                 Serial.println(F(""));
-#endif          
+#endif      
             }
             else
             {

@@ -96,7 +96,8 @@ class MyNotificationListenerService : NotificationListenerService() {
                         "nD": "$nextDirection",
                         "nDD": "$nextDirectionDistance",
                         "aT": "$arrivalTime",
-                        "l": "$left"
+                        "dL": "$distanceLeft",
+                        "tL": "$timeLeft"
                     }
                     """.trimIndent()
 

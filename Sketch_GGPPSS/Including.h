@@ -35,8 +35,11 @@ struct NAVIGATION_DATA
     /// @brief Arrival time.
     String arrivalTime = "-";
 
-    /// @brief Left time and distance.
-    String leftData = "-";
+    /// @brief Left distance.
+    String distanceLeft = "-";
+
+    /// @brief Left time.
+    String timeLeft = "-";
 
     /// @brief Inequality operator to compare two NAVIGATION_DATA objects.
     bool operator!=(const NAVIGATION_DATA &other) const
@@ -44,6 +47,7 @@ struct NAVIGATION_DATA
         return nextDirection != other.nextDirection ||
                nextDirectionDistance != other.nextDirectionDistance ||
                arrivalTime != other.arrivalTime ||
-               leftData != other.leftData;
+               distanceLeft != other.distanceLeft ||
+               timeLeft != other.timeLeft;
     }
 };
